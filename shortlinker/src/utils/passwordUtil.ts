@@ -1,5 +1,4 @@
 import bcrypt from "bcrypt";
-import { handleError } from "../handlers/handleError";
 
 const SALT = 5;
 
@@ -9,8 +8,8 @@ export const createPasswordHash = async (password: string): Promise<string> => {
 
     return await bcrypt.hash(password, salt);
   } catch (error) {
-    handleError(error);
-    throw new Error("Failed to hash the password");
+    console.error("Error hashing password:", error);
+    return Promise.reject("Failed to hash the password");
   }
 };
 
@@ -21,7 +20,7 @@ export const comparePassword = async (
   try {
     return await bcrypt.compare(password, hashedPassword);
   } catch (error) {
-    handleError(error);
-    throw new Error("Failed to compare the password");
+    console.error("Error comparing passwords:", error);
+    return Promise.reject("Failed to compare the password");
   }
 };

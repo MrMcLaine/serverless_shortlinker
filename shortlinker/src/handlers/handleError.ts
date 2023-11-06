@@ -1,10 +1,9 @@
-function handleError(error: unknown): Response {
-  if (error instanceof Error) {
-    console.error(error);
-    return Response.json({ error: error.message });
-  }
-  console.error("Unknown error:", error);
-  return Response.json({ error: "Unknown error occurred." });
-}
+export const handleError = (error: unknown): { statusCode: number; body: string } => {
+  const errorMessage = error instanceof Error ? error.message : 'An unknown error has occurred';
+  console.error(errorMessage);
 
-export { handleError };
+  return {
+    statusCode: 500,
+    body: JSON.stringify({ message: errorMessage })
+  };
+};
