@@ -37,14 +37,14 @@ functions:
     events:
       - httpApi: '*'
   registerUser:
-    handler: src/auth/register.register
+    handler: src/lambdas/register.register
     events:
       - http:
           path: register
           method: post
           cors: true
   loginUser:
-    handler: src/auth/login.login
+    handler: src/lambdas/login.login
     events:
       - http:
           path: login
