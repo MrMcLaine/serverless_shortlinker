@@ -5,6 +5,7 @@ frameworkVersion: '3'
 
 custom:
   tableName: 'users-table-${sls:stage}'
+  linksTableName: 'links-table-${sls:stage}'
 
 provider:
   name: aws
@@ -24,6 +25,7 @@ provider:
             - Fn::GetAtt: [ UsersTable, Arn ]
   environment:
     USERS_TABLE: ${self:custom.tableName}
+    LINKS_TABLE: ${self:custom.linksTableName}
 
 functions:
   api:
@@ -44,3 +46,18 @@ resources:
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
         TableName: ${self:custom.tableName}
+
+    LinksTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.linksTableName}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: linkId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: linkId
+            KeyType: HASH
+        TimeToLiveSpecification:
+          AttributeName: expiredAt
+          Enabled: true
