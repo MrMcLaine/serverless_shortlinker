@@ -84,6 +84,29 @@ class LinkService {
 
         return null;
     }
+
+    async autoDeactivateExpiredLinks(): Promise<void> {
+        const currentTimestamp = new Date().toISOString();
+
+        const params = {
+            TableName: process.env.LINKS_TABLE!,
+            FilterExpression: 'isActive = :val AND expiredAt <= :now',
+            ExpressionAttributeValues: {
+                ':val': true,
+                ':now': currentTimestamp
+            }
+        };
+
+        const result = await dynamoDb.query(params).promise();
+
+        if (result.Items) {
+            for (const link of result.Items) {
+                if (new Date(link.expiredAt) <= new Date()) {
+                    await this.deactivateLink(link.linkId);
+                }
+            }
+        }
+    }
 }
 
 export const linkService = new LinkService();

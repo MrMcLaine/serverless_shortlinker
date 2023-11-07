@@ -4,8 +4,8 @@ service: shortlinker
 frameworkVersion: '3'
 
 plugins:
-  - serverless-esbuild
   - serverless-dotenv-plugin
+  - serverless-offline
 
 custom:
   esbuild:
@@ -36,14 +36,12 @@ provider:
           Resource:
             - Fn::GetAtt: [ UsersTable, Arn ]
             - Fn::GetAtt: [ LinksTable, Arn ]
-            - Fn::Sub: "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${self:provider.stage}-jwt-secret-*"
+            - Fn::Sub: "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:my-secret"
 
   environment:
     USERS_TABLE: ${self:custom.tableName}
     LINKS_TABLE: ${self:custom.linksTableName}
-    AWS_ACCOUNT_ID: ${env:AWS_ACCOUNT_ID}
-    AWS_REGION: ${env:AWS_REGION}
-    JWT_SECRET_NAME: ${env:JWT_SECRET_NAME}
+    JWT_SECRET_NAME: ${JWT_SECRET_NAME}
 
 functions:
   api:
@@ -74,7 +72,8 @@ functions:
           authorizer:
             type: TOKEN
             name: jwtAuthorizer
-            arn: arn:aws:lambda:${self:provider.region}:${aws:accountId}:function:jwtAuthorizer
+            arn: arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:jwtAuthorizer
+
   getLinkFromShortUrl:
     handler: dist/lambdas/getLinkFromShortUrl.getLinkFromShortUrl
     events:
@@ -93,7 +92,13 @@ functions:
           authorizer:
             type: TOKEN
             name: jwtAuthorizer
-            arn: arn:aws:lambda:${self:provider.region}:${aws:accountId}:function:jwtAuthorizer
+            arn: arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:jwtAuthorizer
+
+  autoDeactivateExpiredLinks:
+    handler: dist/lambdas/cronJob.cronJob
+    events:
+      - schedule:
+          schedule: rate(1 day)
 
 resources:
   Resources:
@@ -135,7 +140,7 @@ resources:
     JwtSecret:
       Type: "AWS::SecretsManager::Secret"
       Properties:
-        Name: ${env:JWT_SECRET_NAME}
+        Name: ${JWT_SECRET_NAME}
         Description: "JWT secret for the application"
         GenerateSecretString:
           SecretStringTemplate: '{"jwt":"secret"}'
