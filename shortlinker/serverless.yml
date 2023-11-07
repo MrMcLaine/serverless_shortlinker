@@ -3,7 +3,18 @@ app: shortlinker
 service: shortlinker
 frameworkVersion: '3'
 
+plugins:
+  - serverless-esbuild
+  - serverless-dotenv-plugin
+
 custom:
+  esbuild:
+    bundle: true
+    minify: true
+    sourcemap: true
+    target: 'node18'
+    exclude: ['aws-sdk']
+    platform: 'node'
   tableName: 'users-table-${sls:stage}'
   linksTableName: 'links-table-${sls:stage}'
 
@@ -30,6 +41,9 @@ provider:
   environment:
     USERS_TABLE: ${self:custom.tableName}
     LINKS_TABLE: ${self:custom.linksTableName}
+    AWS_ACCOUNT_ID: ${env:AWS_ACCOUNT_ID}
+    AWS_REGION: ${env:AWS_REGION}
+    JWT_SECRET_NAME: ${env:JWT_SECRET_NAME}
 
 functions:
   api:
@@ -37,21 +51,21 @@ functions:
     events:
       - httpApi: '*'
   registerUser:
-    handler: src/lambdas/register.register
+    handler: dist/lambdas/register.register
     events:
       - http:
           path: register
           method: post
           cors: true
   loginUser:
-    handler: src/lambdas/login.login
+    handler: dist/lambdas/login.login
     events:
       - http:
           path: login
           method: post
           cors: true
   createLink:
-    handler: src/lambdas/createLink.createLink
+    handler: dist/lambdas/createLink.createLink
     events:
       - http:
           path: link
@@ -60,9 +74,9 @@ functions:
           authorizer:
             type: TOKEN
             name: jwtAuthorizer
-            arn: arn:aws:lambda:region:accountId:function:jwtAuthorizer
+            arn: arn:aws:lambda:${self:provider.region}:${aws:accountId}:function:jwtAuthorizer
   getLinkFromShortUrl:
-    handler: src/lambdas/getLinkFromShortUrl.getLinkFromShortUrl
+    handler: dist/lambdas/getLinkFromShortUrl.getLinkFromShortUrl
     events:
       - http:
           path: link/{linkId}
@@ -70,7 +84,7 @@ functions:
           cors: true
 
   deactivateLink:
-    handler: src/lambdas/deactivateLink.deactivateLink
+    handler: dist/lambdas/deactivateLink.deactivateLink
     events:
       - http:
           path: link/{linkId}/deactivate
@@ -79,7 +93,7 @@ functions:
           authorizer:
             type: TOKEN
             name: jwtAuthorizer
-            arn: arn:aws:lambda:region:accountId:function:jwtAuthorizer
+            arn: arn:aws:lambda:${self:provider.region}:${aws:accountId}:function:jwtAuthorizer
 
 resources:
   Resources:
@@ -121,7 +135,7 @@ resources:
     JwtSecret:
       Type: "AWS::SecretsManager::Secret"
       Properties:
-        Name: ${self:provider.stage}-jwt-secret
+        Name: ${env:JWT_SECRET_NAME}
         Description: "JWT secret for the application"
         GenerateSecretString:
           SecretStringTemplate: '{"jwt":"secret"}'
