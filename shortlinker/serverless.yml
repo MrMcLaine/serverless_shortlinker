@@ -61,6 +61,25 @@ functions:
             type: TOKEN
             name: jwtAuthorizer
             arn: arn:aws:lambda:region:accountId:function:jwtAuthorizer
+  getLinkFromShortUrl:
+    handler: src/lambdas/getLinkFromShortUrl.getLinkFromShortUrl
+    events:
+      - http:
+          path: link/{linkId}
+          method: get
+          cors: true
+
+  deactivateLink:
+    handler: src/lambdas/deactivateLink.deactivateLink
+    events:
+      - http:
+          path: link/{linkId}/deactivate
+          method: post
+          cors: true
+          authorizer:
+            type: TOKEN
+            name: jwtAuthorizer
+            arn: arn:aws:lambda:region:accountId:function:jwtAuthorizer
 
 resources:
   Resources:

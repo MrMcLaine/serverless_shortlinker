@@ -50,6 +50,18 @@ class LinkService {
         await dynamoDb.update(params).promise();
     }
 
+    async isOwnerOfLink(userId: string, linkId: string): Promise<undefined | boolean> {
+        const params = {
+            TableName: process.env.LINKS_TABLE!,
+            Key: {
+                linkId: linkId
+            }
+        };
+
+        const result = await dynamoDb.get(params).promise();
+        return result.Item && result.Item.userId === userId;
+    }
+
     async getLinkFromShortUrl(linkId: string): Promise<ILink | null> {
         const params = {
             TableName: process.env.LINKS_TABLE!,
