@@ -50,6 +50,17 @@ functions:
           path: login
           method: post
           cors: true
+  createLink:
+    handler: src/lambdas/createLink.createLink
+    events:
+      - http:
+          path: link
+          method: post
+          cors: true
+          authorizer:
+            type: TOKEN
+            name: jwtAuthorizer
+            arn: arn:aws:lambda:region:accountId:function:jwtAuthorizer
 
 resources:
   Resources:

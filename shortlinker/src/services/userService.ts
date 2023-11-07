@@ -1,8 +1,8 @@
 import { v4 as uuid } from 'uuid';
-import { IUser } from '../interfaces/IUser';
 import dynamoDb from '../libs/db';
-import {comparePassword, createPasswordHash} from '../utils/passwordUtil';
 import { authService } from './AuthService';
+import { comparePassword, createPasswordHash } from '../utils/passwordUtil';
+import { IUser } from '../interfaces/IUser';
 
 class UserService {
     async register(email: string, password: string): Promise<{ userId: string; token: string }> {

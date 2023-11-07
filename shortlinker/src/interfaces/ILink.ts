@@ -5,4 +5,5 @@ export interface ILink {
     userId: string;
     isActive: boolean;
     expiredAt: Date;
+    isOneTimeUse: boolean;
 }
