@@ -6,4 +6,5 @@ export interface ILink {
     isActive: boolean;
     expiredAt: Date;
     isOneTimeUse: boolean;
+    transitionCount: number;
 }

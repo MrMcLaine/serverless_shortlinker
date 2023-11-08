@@ -25,7 +25,8 @@ class LinkService {
             userId,
             isActive: true,
             expiredAt,
-            isOneTimeUse: expiryPeriod === ExpiryTerm.ONCE
+            isOneTimeUse: expiryPeriod === ExpiryTerm.ONCE,
+            transitionCount: 0
         };
 
         const params = {
@@ -105,6 +106,15 @@ class LinkService {
 
         if (result.Item) {
             const link: ILink = result.Item as ILink;
+
+            await dynamoDb.update({
+                TableName: process.env.LINKS_TABLE!,
+                Key: { linkId },
+                UpdateExpression: 'set transitionCount = transitionCount + :val',
+                ExpressionAttributeValues: {
+                    ':val': 1
+                },
+            }).promise();
 
             if (link.isActive && link.isOneTimeUse) {
                 await this.deactivateLink(linkId);
