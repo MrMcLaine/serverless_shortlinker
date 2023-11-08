@@ -103,8 +103,7 @@ functions:
   autoDeactivateExpiredLinks:
     handler: dist/lambdas/cronJob.cronJob
     events:
-      - schedule:
-          schedule: rate(1 day)
+      - schedule: rate(1 day)
 
   sendEmail:
     handler: dist/lambdas/sendEmail.sendEmail
