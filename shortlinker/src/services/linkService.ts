@@ -2,6 +2,7 @@ import { v4 as uuid } from 'uuid';
 import shortid from 'shortid';
 import dynamoDb from '../libs/db';
 import { ExpiryTerm } from '../contants/ExpiryTerm';
+import { sqsService } from "./sqsService";
 import { validateLink } from "../validation/linkValidation";
 import { calculateExpiryDate } from "../utils/calculateExpiryDate";
 import { ILink } from "../interfaces/ILink";
@@ -48,6 +49,21 @@ class LinkService {
         };
 
         await dynamoDb.update(params).promise();
+
+        const userEmail = await dynamoDb.get({
+            TableName: process.env.USERS_TABLE!,
+            Key: { userId: process.env.ADMIN_USER_ID! }
+        })
+
+        const sqsQueueName = 'EmailQueue';
+        const sqsQueueUrl = `https://sqs.${process.env.AWS_REGION}.amazonaws.com/${process.env.AWS_ACCOUNT_ID}/${sqsQueueName}`;
+
+        const message = {
+            to: userEmail,
+            subject: 'Your link has been deactivated',
+            body: 'Your link with ID ' + linkId + ' has been deactivated.',
+        };
+        await sqsService.sendMessage(sqsQueueUrl, message);
     }
 
     async isOwnerOfLink(userId: string, linkId: string): Promise<undefined | boolean> {
