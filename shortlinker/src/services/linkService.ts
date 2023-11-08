@@ -8,6 +8,14 @@ import { calculateExpiryDate } from "../utils/calculateExpiryDate";
 import { ILink } from "../interfaces/ILink";
 
 class LinkService {
+    private linksTable: string;
+    private usersTable: string;
+
+    constructor(linksTableName: string, usersTableName: string) {
+        this.linksTable = linksTableName;
+        this.usersTable = usersTableName;
+    }
+
     async createLink(
         userId: string,
         originalUrl: string,
@@ -30,7 +38,7 @@ class LinkService {
         };
 
         const params = {
-            TableName: process.env.LINKS_TABLE!,
+            TableName: this.linksTable!,
             Item: newLink,
         };
 
@@ -42,7 +50,7 @@ class LinkService {
     async deactivateLink(linkId: string): Promise<void> {
 
         const linkResult = await dynamoDb.get({
-            TableName: process.env.LINKS_TABLE!,
+            TableName: this.linksTable!,
             Key: { linkId }
         }).promise();
         const link = linkResult.Item;
@@ -52,7 +60,7 @@ class LinkService {
         }
 
         await dynamoDb.update({
-            TableName: process.env.LINKS_TABLE!,
+            TableName: this.linksTable!,
             Key: { linkId },
             UpdateExpression: 'set isActive = :val',
             ExpressionAttributeValues: {
@@ -61,7 +69,7 @@ class LinkService {
         }).promise();
 
         const userResult = await dynamoDb.get({
-            TableName: process.env.USERS_TABLE!,
+            TableName: this.usersTable!,
             Key: { userId: link.userId }
         }).promise();
 
@@ -84,7 +92,7 @@ class LinkService {
 
     async isOwnerOfLink(userId: string, linkId: string): Promise<undefined | boolean> {
         const params = {
-            TableName: process.env.LINKS_TABLE!,
+            TableName: this.linksTable!,
             Key: {
                 linkId: linkId
             }
@@ -96,7 +104,7 @@ class LinkService {
 
     async getLinkFromShortUrl(linkId: string): Promise<ILink | null> {
         const params = {
-            TableName: process.env.LINKS_TABLE!,
+            TableName: this.linksTable!,
             Key: {
                 linkId: linkId
             }
@@ -108,7 +116,7 @@ class LinkService {
             const link: ILink = result.Item as ILink;
 
             await dynamoDb.update({
-                TableName: process.env.LINKS_TABLE!,
+                TableName: this.linksTable!,
                 Key: { linkId },
                 UpdateExpression: 'set transitionCount = transitionCount + :val',
                 ExpressionAttributeValues: {
@@ -130,7 +138,7 @@ class LinkService {
         const currentTimestamp = new Date().toISOString();
 
         const params = {
-            TableName: process.env.LINKS_TABLE!,
+            TableName: this.linksTable!,
             FilterExpression: 'isActive = :val AND expiredAt <= :now',
             ExpressionAttributeValues: {
                 ':val': true,
@@ -150,4 +158,7 @@ class LinkService {
     }
 }
 
-export const linkService = new LinkService();
+export const linkService = new LinkService(
+    'links-table-${sls:stage}',
+    'users-table-${sls:stage}'
+);
