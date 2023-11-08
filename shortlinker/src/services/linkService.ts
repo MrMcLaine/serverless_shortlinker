@@ -39,27 +39,42 @@ class LinkService {
     }
 
     async deactivateLink(linkId: string): Promise<void> {
-        const params = {
+
+        const linkResult = await dynamoDb.get({
+            TableName: process.env.LINKS_TABLE!,
+            Key: { linkId }
+        }).promise();
+        const link = linkResult.Item;
+
+        if (!link) {
+            throw new Error('Link not found');
+        }
+
+        await dynamoDb.update({
             TableName: process.env.LINKS_TABLE!,
             Key: { linkId },
             UpdateExpression: 'set isActive = :val',
             ExpressionAttributeValues: {
                 ':val': false
             }
-        };
+        }).promise();
 
-        await dynamoDb.update(params).promise();
-
-        const userEmail = await dynamoDb.get({
+        const userResult = await dynamoDb.get({
             TableName: process.env.USERS_TABLE!,
-            Key: { userId: process.env.ADMIN_USER_ID! }
-        })
+            Key: { userId: link.userId }
+        }).promise();
+
+        const user = userResult.Item;
+
+        if (!user) {
+            throw new Error('User not found');
+        }
 
         const sqsQueueName = 'EmailQueue';
         const sqsQueueUrl = `https://sqs.${process.env.AWS_REGION}.amazonaws.com/${process.env.AWS_ACCOUNT_ID}/${sqsQueueName}`;
 
         const message = {
-            to: userEmail,
+            to: user.email,
             subject: 'Your link has been deactivated',
             body: 'Your link with ID ' + linkId + ' has been deactivated.',
         };
