@@ -37,6 +37,12 @@ provider:
             - Fn::GetAtt: [ UsersTable, Arn ]
             - Fn::GetAtt: [ LinksTable, Arn ]
             - Fn::Sub: "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:my-secret"
+        - Effect: Allow
+          Action:
+            - ses:SendEmail
+            - sqs:SendMessage
+            - sqs:SendMessageBatch
+          Resource: "*"
 
   environment:
     USERS_TABLE: ${self:custom.tableName}
@@ -100,6 +106,13 @@ functions:
       - schedule:
           schedule: rate(1 day)
 
+  sendEmail:
+    handler: dist/lambdas/sendEmail.sendEmail
+    events:
+      - sqs:
+          arn: arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:EmailQueue
+          batchSize: 10
+
 resources:
   Resources:
     UsersTable:
@@ -137,6 +150,7 @@ resources:
         TimeToLiveSpecification:
           AttributeName: expiredAt
           Enabled: true
+
     JwtSecret:
       Type: "AWS::SecretsManager::Secret"
       Properties:
@@ -145,3 +159,8 @@ resources:
         GenerateSecretString:
           SecretStringTemplate: '{"jwt":"secret"}'
           GenerateStringKey: "jwt"
+
+    EmailQueue:
+      Type: "AWS::SQS::Queue"
+      Properties:
+        QueueName: "EmailQueue"
