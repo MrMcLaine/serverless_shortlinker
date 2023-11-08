@@ -113,6 +113,18 @@ functions:
           arn: arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:EmailQueue
           batchSize: 10
 
+  getLinksByUser:
+    handler: dist/lambdas/getLinksByUser.getLinksByUser
+    events:
+      - http:
+          path: links
+          method: get
+          cors: true
+          authorizer:
+            type: TOKEN
+            name: jwtAuthorizer
+            arn: arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:jwtAuthorizer
+
 resources:
   Resources:
     UsersTable:
@@ -144,12 +156,21 @@ resources:
         AttributeDefinitions:
           - AttributeName: linkId
             AttributeType: S
+          - AttributeName: userId
+            AttributeType: S
         KeySchema:
           - AttributeName: linkId
             KeyType: HASH
         TimeToLiveSpecification:
           AttributeName: expiredAt
           Enabled: true
+        GlobalSecondaryIndexes:
+          - IndexName: UserIdIndex
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+            Projection:
+              ProjectionType: "ALL"
 
     JwtSecret:
       Type: "AWS::SecretsManager::Secret"

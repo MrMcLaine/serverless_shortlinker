@@ -156,6 +156,25 @@ class LinkService {
             }
         }
     }
+
+    async getLinksByUser(userId: string): Promise<ILink[]> {
+        const params = {
+            TableName: this.linksTable,
+            IndexName: 'UserIdIndex',
+            KeyConditionExpression: 'userId = :userId',
+            ExpressionAttributeValues: {
+                ':userId': userId,
+            },
+        };
+
+        try {
+            const result = await dynamoDb.query(params).promise();
+            return result.Items as ILink[];
+        } catch (error) {
+            console.error('Error fetching links by user:', error);
+            throw error;
+        }
+    }
 }
 
 export const linkService = new LinkService(
