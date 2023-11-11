@@ -1,0 +1,203 @@
+org: mrmclaine
+app: sls-linker
+service: module-03-1
+frameworkVersion: "3"
+
+custom:
+  usersTableName: UsersTable
+  linksTableName: LinksTable
+  JWT_SECRET: SECRET
+
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: ${env:AWS_REGION}
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "dynamodb:PutItem"
+        - "dynamodb:GetItem"
+        - "dynamodb:UpdateItem"
+        - "dynamodb:DeleteItem"
+        - "dynamodb:Query"
+        - "dynamodb:Scan"
+      Resource:
+        - "arn:aws:dynamodb:${env:AWS_REGION}:${env:AWS_ACCOUNT_ID}:table/UsersTable"
+        - "arn:aws:dynamodb:${env:AWS_REGION}:${env:AWS_ACCOUNT_ID}:table/UsersTable/index/EmailIndex"
+        - "arn:aws:dynamodb:${env:AWS_REGION}:${env:AWS_ACCOUNT_ID}:table/LinksTable"
+        - "arn:aws:dynamodb:${env:AWS_REGION}:${env:AWS_ACCOUNT_ID}:table/LinksTable/index/userId"
+        - "arn:aws:dynamodb:${env:AWS_REGION}:${env:AWS_ACCOUNT_ID}:table/LinksTable/*"
+    - Effect: "Allow"
+      Action:
+        - "ses:SendEmail"
+        - "ses:SendRawEmail"
+      Resource: "arn:aws:ses:${env:AWS_REGION}:${env:AWS_ACCOUNT_ID}:identity/lypovskyi@gmail.com"
+    - Effect: "Allow"
+      Action:
+        - "sqs:SendMessage"
+      Resource: "arn:aws:sqs:${env:AWS_REGION}:${env:AWS_ACCOUNT_ID}:LinkDeactivationQueue"
+
+  environment:
+    USERS_TABLE: ${self:custom.usersTableName}
+    LINKS_TABLE: ${self:custom.linksTableName}
+    JWT_SECRET: ${self:custom.JWT_SECRET}
+    LINK_DEACTIVATION_QUEUE_URL: !Ref LinkDeactivationQueue
+
+functions:
+  authorizer:
+    handler: dist/authorizer.handler
+    package:
+      individually: true
+      include:
+        - authorizer.js
+  test:
+    handler: dist/test.handler
+    events:
+      - http:
+          path: test
+          method: get
+  register:
+    handler: dist/register.handler
+    package:
+      individually: true
+      include:
+        - dist/register.js
+    events:
+      - http:
+          path: register
+          method: post
+  login:
+    handler: dist/login.handler
+    package:
+      individually: true
+      include:
+        - dist/login.js
+    events:
+      - http:
+          path: login
+          method: post
+  createLink:
+    handler: dist/createLink.handler
+    package:
+      individually: true
+      include:
+        - dist/createLink.js
+    events:
+      - http:
+          path: links
+          method: post
+          authorizer:
+            name: authorizer
+            type: TOKEN
+            identitySource: method.request.header.Authorization
+            resultTtlInSeconds: 3600
+  getLinksByUser:
+    handler: dist/getLinksByUser.handler
+    package:
+      individually: true
+      include:
+        - dist/getLinksByUser.js
+    events:
+      - http:
+          path: links
+          method: get
+          authorizer:
+            name: authorizer
+            type: TOKEN
+            identitySource: method.request.header.Authorization
+            resultTtlInSeconds: 3600
+  getLinkFromShortUrl:
+    handler: dist/getLinkFromShortUrl.handler
+    package:
+      individually: true
+      include:
+        - dist/getLinkFromShortUrl.js
+    events:
+      - http:
+          path: /{linkId}
+          method: get
+  deactivateLink:
+    handler: dist/deactivateLink.handler
+    package:
+      individually: true
+      include:
+        - dist/deactivateLink.js
+    events:
+      - http:
+          path: links/{linkId}
+          method: delete
+          authorizer:
+            name: authorizer
+            type: TOKEN
+            identitySource: method.request.header.Authorization
+            resultTtlInSeconds: 3600
+  cronJob:
+    handler: dist/cronJob.handler
+    package:
+      individually: true
+      include:
+        - dist/cronJob.js
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - LinkDeactivationQueue
+              - Arn
+
+resources:
+  Resources:
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.usersTableName}
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: email
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+        GlobalSecondaryIndexes:
+          - IndexName: EmailIndex
+            KeySchema:
+              - AttributeName: email
+                KeyType: HASH
+            Projection:
+              ProjectionType: "ALL"
+
+    LinksTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.linksTableName}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: linkId
+            AttributeType: S
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: shortUrl
+            AttributeType: S
+        KeySchema:
+          - AttributeName: linkId
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: UserIdIndex
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+            Projection:
+              ProjectionType: "ALL"
+          - IndexName: ShortUrlIndex
+            KeySchema:
+              - AttributeName: shortUrl
+                KeyType: HASH
+            Projection:
+              ProjectionType: "ALL"
+    LinkDeactivationQueue:
+      Type: "AWS::SQS::Queue"
+      Properties:
+        QueueName: LinkDeactivationQueue
