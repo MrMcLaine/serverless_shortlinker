@@ -1,0 +1,247 @@
+openapi: 3.0.0
+info:
+  title: SLS-Linker API
+  version: 1.0.0
+servers:
+  - url: 'https://2bam51app4.execute-api.us-east-1.amazonaws.com/dev/'
+    description: Development server
+paths:
+  /register:
+    post:
+      summary: User Registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+              example:
+                email: "user@example.com"
+                password: "yourpassword"
+      responses:
+        '200':
+          description: Successful registration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId:
+                    type: string
+                  token:
+                    type: string
+              example:
+                userId: "some-unique-id"
+                token: "jwt-token"
+        '400':
+          description: Bad request
+  /login:
+    post:
+      summary: User Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+              example:
+                email: "user@example.com"
+                password: "yourpassword"
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId:
+                    type: string
+                  token:
+                    type: string
+              example:
+                userId: "user-id"
+                token: "jwt-token"
+        '400':
+          description: Bad request
+  /links:
+    post:
+      summary: Create a Short Link
+      description: This endpoint allows users to create a new short link.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - originalUrl
+                - expiryPeriod
+              properties:
+                originalUrl:
+                  type: string
+                  format: uri
+                  description: The original URL to be shortened.
+                expiryPeriod:
+                  type: string
+                  enum: [ONCE, HOUR, DAY, WEEK, MONTH, NEVER]
+                  description: Expiry period for the link.
+              example:
+                originalUrl: "https://example.com/long-url"
+                expiryPeriod: "DAY"
+      responses:
+        '200':
+          description: Successfully created short link
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  shortUrl:
+                    type: string
+                    format: uri
+                    description: The shortened URL.
+                  expiredAt:
+                    type: string
+                    format: date-time
+                    description: Expiration date and time of the link.
+              example:
+                shortUrl: "https://domain.com/dev/abc123"
+                expiredAt: "2023-12-31T23:59:59.000Z"
+        '400':
+          description: Bad request (e.g., invalid URL or expiry period)
+        '401':
+          description: Unauthorized (e.g., missing or invalid token)
+        '500':
+          description: Internal server error
+    get:
+      summary: Get Links by User
+      description: Retrieves all links created by the authenticated user.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successfully retrieved links.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Link'
+        '401':
+          description: Unauthorized (e.g., missing or invalid token).
+        '500':
+          description: Internal server error.
+  /{linkId}:
+    get:
+      summary: Get Original URL from Short URL
+      description: Retrieves the original URL corresponding to the provided short URL.
+      parameters:
+        - in: path
+          name: linkId
+          required: true
+          schema:
+            type: string
+          description: The short URL identifier.
+      responses:
+        '301':
+          description: Redirect to the original URL.
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+              description: The original URL to redirect to.
+        '400':
+          description: Bad request (e.g., missing link ID).
+        '404':
+          description: Link not found or inactive.
+        '500':
+          description: Internal server error.
+  /links/{linkId}:
+    delete:
+      summary: Deactivate a Link
+      description: Deactivates a link specified by its ID.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: linkId
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the link to be deactivated.
+      responses:
+        '200':
+          description: Link successfully deactivated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: "Link with id {linkId} was successfully deactivated"
+        '400':
+          description: Bad request (e.g., missing link ID).
+        '401':
+          description: Unauthorized (e.g., missing or invalid token).
+        '403':
+          description: Forbidden (e.g., user is not the owner of the link).
+        '404':
+          description: Link not found.
+        '500':
+          description: Internal server error.
+
+components:
+  schemas:
+    Link:
+      type: object
+      properties:
+        linkId:
+          type: string
+        originalUrl:
+          type: string
+          format: uri
+        shortUrl:
+          type: string
+          format: uri
+        userId:
+          type: string
+        isActive:
+          type: boolean
+        expiredAt:
+          type: string
+          format: date-time
+        isOneTimeUse:
+          type: boolean
+        transitionCount:
+          type: integer
+        deactivateLetter:
+          type: boolean
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
