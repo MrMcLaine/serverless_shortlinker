@@ -17,6 +17,10 @@ export const calculateExpiryDate = async (expiryTerm: ExpiryTerm): Promise<strin
             case ExpiryTerm.SEVEN_DAYS:
                 expiredAt.setDate(expiredAt.getDate() + 7);
                 break;
+            case ExpiryTerm.TEST:
+                expiredAt = new Date(expiredAt.getTime() + 60 * 1000);
+                break;
+
             default:
                 throw new Error('Invalid expiry period');
         }

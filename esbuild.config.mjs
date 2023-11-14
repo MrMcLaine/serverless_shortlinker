@@ -1,7 +1,6 @@
 import esbuild from 'esbuild';
 
 const lambdas = [
-    'test',
     'register',
     'login',
     'createLink',

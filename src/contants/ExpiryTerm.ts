@@ -3,4 +3,5 @@ export enum ExpiryTerm {
     ONE_DAY = '1DAY',
     THREE_DAYS = '3DAYS',
     SEVEN_DAYS = '7DAYS',
+    TEST = 'TEST'
 }
