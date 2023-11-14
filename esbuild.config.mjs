@@ -1,7 +1,6 @@
 import esbuild from 'esbuild';
 
 const lambdas = [
-    'test',
     'register',
     'login',
     'createLink',
@@ -9,7 +8,8 @@ const lambdas = [
     'getLinksByUser',
     'getLinkFromShortUrl',
     'deactivateLink',
-    'cronJob'
+    'cronJob',
+    'handleLinkExpiration'
 ];
 
 lambdas.forEach(lambda => {

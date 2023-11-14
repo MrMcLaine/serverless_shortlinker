@@ -4,7 +4,7 @@ export interface ILink {
     shortUrl: string;
     userId: string;
     isActive: boolean;
-    expiredAt: string;
+    expiredAt: number;
     isOneTimeUse: boolean;
     transitionCount: number;
     deactivateLetter: boolean
