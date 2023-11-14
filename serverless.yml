@@ -144,6 +144,20 @@ functions:
             Fn::GetAtt:
               - LinkDeactivationQueue
               - Arn
+  handleLinkExpiration:
+    handler: dist/handleLinkExpiration.handler
+    package:
+      individually: true
+      include:
+        - dist/handleLinkExpiration.js
+    events:
+      - stream:
+          type: dynamodb
+          arn:
+            Fn::GetAtt:
+              - LinksTable
+              - StreamArn
+          batchSize: 100
 
 resources:
   Resources:
@@ -181,6 +195,8 @@ resources:
             AttributeType: S
           - AttributeName: shortUrl
             AttributeType: S
+          - AttributeName: expiredAt
+            AttributeType: N
         KeySchema:
           - AttributeName: linkId
             KeyType: HASH
@@ -197,6 +213,14 @@ resources:
                 KeyType: HASH
             Projection:
               ProjectionType: "ALL"
+          - IndexName: ExpiredAtIndex
+            KeySchema:
+              - AttributeName: expiredAt
+                KeyType: HASH
+            Projection:
+              ProjectionType: "ALL"
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
     LinkDeactivationQueue:
       Type: "AWS::SQS::Queue"
       Properties:

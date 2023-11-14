@@ -1,6 +1,6 @@
 import { ExpiryTerm } from "../contants/ExpiryTerm";
 
-export const calculateExpiryDate = async (expiryTerm: ExpiryTerm): Promise<string> => {
+export const calculateExpiryDate = async (expiryTerm: ExpiryTerm): Promise<number> => {
     try {
         const INFINITY_DATE = new Date('9999-12-31T23:59:59.999Z');
         let expiredAt = new Date();
@@ -17,11 +17,14 @@ export const calculateExpiryDate = async (expiryTerm: ExpiryTerm): Promise<strin
             case ExpiryTerm.SEVEN_DAYS:
                 expiredAt.setDate(expiredAt.getDate() + 7);
                 break;
+            case ExpiryTerm.TEST:
+                expiredAt = new Date(expiredAt.getTime() + 60 * 1000);
+                break;
+
             default:
                 throw new Error('Invalid expiry period');
         }
-        console.log('expiredAt', expiredAt);
-        return expiredAt.toISOString();
+        return Math.floor(expiredAt.getTime() / 1000);
     } catch (error) {
         throw error;
     }
