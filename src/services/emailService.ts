@@ -6,6 +6,11 @@ const ses = new AWS.SES({ region: sesRegion });
 class EmailService {
     async sendEmail(to: string, subject: string, body: string): Promise<void> {
         const senderEmail = process.env.SENDER_EMAIL!;
+
+        if (!senderEmail) {
+            throw new Error('SENDER_EMAIL is not defined');
+        }
+
         const params: AWS.SES.SendEmailRequest = {
             Source: senderEmail,
             Destination: {
