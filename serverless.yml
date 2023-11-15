@@ -37,6 +37,11 @@ provider:
       Action:
         - "sqs:SendMessage"
       Resource: "arn:aws:sqs:${env:AWS_REGION}:${env:AWS_ACCOUNT_ID}:LinkDeactivationQueue"
+    - Effect: "Allow"
+      Action:
+        - "events:PutRule"
+        - "events:PutTargets"
+      Resource: "arn:aws:events:${env:AWS_REGION}:${env:AWS_ACCOUNT_ID}:rule/*"
 
   environment:
     USERS_TABLE: ${self:custom.usersTableName}

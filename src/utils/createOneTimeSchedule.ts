@@ -6,11 +6,15 @@ const eventBridgeClient = new EventBridgeClient(
 
 export const createOneTimeSchedule = async (linkId: string, expirationDateTime: string): Promise<void> => {
     const ruleName = `deactivateLink-${linkId}`;
-    const lambdaArn = `arn:aws:lambda:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:function:deactivateLink`;
+    const accountId = process.env.AWS_ACCOUNT_ID || '870642761716';
+    const lambdaArn = `arn:aws:lambda:${process.env.AWS_REGION}:${accountId}:function:module-03-1-dev-deactivateLink`;
+
+    const date = new Date(expirationDateTime);
+    const cronExpression = `cron(${date.getUTCMinutes()} ${date.getUTCHours()} ${date.getUTCDate()} ${date.getUTCMonth() + 1} ? ${date.getUTCFullYear()})`;
 
     const putRuleCommand = new PutRuleCommand({
         Name: ruleName,
-        ScheduleExpression: `at(${expirationDateTime})`,
+        ScheduleExpression: cronExpression,
         State: 'ENABLED',
         Description: 'One-time schedule for deactivating a link'
     });

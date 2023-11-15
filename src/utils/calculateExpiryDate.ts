@@ -24,6 +24,9 @@ export const calculateExpiryDate = async (expiryTerm: ExpiryTerm): Promise<strin
             default:
                 throw new Error('Invalid expiry period');
         }
+
+        expiredAt.setTime(expiredAt.getTime() + 2 * 60 * 60 * 1000);
+
         console.log('expiredAt', expiredAt);
         return expiredAt.toISOString();
     } catch (error) {
