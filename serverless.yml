@@ -149,6 +149,12 @@ functions:
             Fn::GetAtt:
               - LinkDeactivationQueue
               - Arn
+  linkDeactivation:
+    handler: dist/linkDeactivation.handler
+    package:
+      individually: true
+      include:
+        - dist/linkDeactivation.js
 
 resources:
   Resources:
