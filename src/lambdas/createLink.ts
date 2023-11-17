@@ -1,8 +1,7 @@
 import { APIGatewayEvent, Context, Callback } from 'aws-lambda';
 import { linkService } from "../services/linkService";
 import { handleError } from "../handlers/handleError";
-import {ExpiryTerm} from "../contants/ExpiryTerm";
-import {createOneTimeSchedule} from "../utils/createOneTimeSchedule";
+import {deactivate} from "../utils/deactivate";
 
 export const handler = async (
     event: APIGatewayEvent,
@@ -22,10 +21,12 @@ export const handler = async (
         const newLink  = await linkService.createLink(userId, originalUrl, expiryPeriod);
         const fullShortUrl = `https://${currentDomain}/dev/${newLink.shortUrl}`;
 
-        if (expiryPeriod !== ExpiryTerm.ONCE) {
+        /*if (expiryPeriod !== ExpiryTerm.ONCE) {
             const expirationDateTime = newLink.expiredAt;
             await createOneTimeSchedule(newLink.linkId, expirationDateTime);
-        }
+        }*/
+
+        await deactivate(newLink.linkId, newLink.expiredAt);
 
        const response = {
             statusCode: 200,
